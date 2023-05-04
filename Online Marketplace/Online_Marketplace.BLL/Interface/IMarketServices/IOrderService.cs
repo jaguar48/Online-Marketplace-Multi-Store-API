@@ -1,5 +1,6 @@
 ﻿using Online_Marketplace.DAL.Enums;
 using Online_Marketplace.Shared.DTOs;
+using PayStack.Net;
 
 namespace Online_Marketplace.BLL.Interface.IMarketServices
 {
@@ -15,7 +16,8 @@ namespace Online_Marketplace.BLL.Interface.IMarketServices
         public Task UpdateOrderStatusAsync(UpdateOrderStatusDto updateOrderStatusDto);
 
 
-        public Task<bool> CheckoutAsync(int cartId, ShippingMethod shippingMethod);
+        public Task<string> CheckoutAsync(int cartId, ShippingMethod shippingMethod);
+        public Task<TransactionInitializeResponse> MakePayment(PaymentRequestDto paymentRequestDto);
 
     }
 }

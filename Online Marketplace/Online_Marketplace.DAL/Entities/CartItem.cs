@@ -11,7 +11,6 @@ namespace Online_Marketplace.DAL.Entities
         public Cart Cart { get; set; }
         public Product Product { get; set; }
         
-
     }
 
 }

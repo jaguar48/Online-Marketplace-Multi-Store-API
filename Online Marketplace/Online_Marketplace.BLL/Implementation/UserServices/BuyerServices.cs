@@ -1,5 +1,7 @@
 ﻿using Contracts;
 using Microsoft.AspNetCore.Identity;
+using Newtonsoft.Json;
+using Online_Marketplace.BLL.Helpers;
 using Online_Marketplace.BLL.Interface.IServices;
 using Online_Marketplace.DAL.Entities.Models;
 using Online_Marketplace.Logger.Logger;
@@ -57,11 +59,13 @@ namespace Online_Marketplace.BLL.Implementation.Services
 
             };
 
-            var result = await _buyerRepo.AddAsync(buyer);
+           await _buyerRepo.AddAsync(buyer);
 
-            return $"Registration Successful! You can now start buying products!";
             
 
+            var result = new { success = true, message = "Registration Successful! You can now start buying products!" };
+            return JsonConvert.SerializeObject(result);
         }
+      
     }
 }

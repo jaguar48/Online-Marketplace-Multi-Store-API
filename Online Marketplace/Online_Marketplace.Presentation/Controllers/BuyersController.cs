@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Online_Marketplace.BLL.Implementation.Services;
 using Online_Marketplace.BLL.Interface.IProfileServices;
 using Online_Marketplace.BLL.Interface.IServices;
 using Online_Marketplace.Shared.DTOs;
@@ -10,7 +11,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace Online_Marketplace.Presentation.Controllers
 {
     [ApiController]
-    [Route("/marketplace/buyers")]
+    [Route("/marketplace/buyer")]
     public class BuyersController : ControllerBase
     {
 
@@ -25,16 +26,18 @@ namespace Online_Marketplace.Presentation.Controllers
 
 
 
+
         [HttpPost("register")]
         [ServiceFilter(typeof(ValidationFilterAttribute))]
-        [SwaggerOperation(Summary = "Register a new buyer.")]
-        [SwaggerResponse(StatusCodes.Status200OK, "The buyer was registered successfully.", typeof(BuyerForRegistrationDto))]
-        [SwaggerResponse(StatusCodes.Status400BadRequest, "The request was invalid or the email is already taken.")]
+        [SwaggerOperation("Registers a new buyer.")]
+        [SwaggerResponse(200, "The buyer has been successfully registered.", typeof(BuyerForRegistrationDto))]
         public async Task<IActionResult> RegisterBuyer([FromBody] BuyerForRegistrationDto buyerForRegistration)
         {
-            var response = await _buyerServices.RegisterBuyer(buyerForRegistration);
-            return Ok(response);
+            var result = await _buyerServices.RegisterBuyer(buyerForRegistration);
+            return Ok(result);
         }
+
+
 
 
         [HttpPost("createProfile")]

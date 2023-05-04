@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Online_Marketplace.DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class wallet : Migration
+    public partial class updates : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -52,23 +52,6 @@ namespace Online_Marketplace.DAL.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Shipping",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Rate = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    EstimateDeliveryDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ShippingMethod = table.Column<int>(type: "int", nullable: false),
-                    Policy = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Shipping", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -311,6 +294,26 @@ namespace Online_Marketplace.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Category",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SellerId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Category", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Category_Sellers_SellerId",
+                        column: x => x.SellerId,
+                        principalTable: "Sellers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SellerProfiles",
                 columns: table => new
                 {
@@ -406,11 +409,18 @@ namespace Online_Marketplace.DAL.Migrations
                     StockQuantity = table.Column<int>(type: "int", nullable: false),
                     Brand = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SellerId = table.Column<int>(type: "int", nullable: false),
+                    CategoryId = table.Column<int>(type: "int", nullable: false),
                     SellerProfileId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Products", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Products_Category_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Category",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Products_SellerProfiles_SellerProfileId",
                         column: x => x.SellerProfileId,
@@ -420,8 +430,7 @@ namespace Online_Marketplace.DAL.Migrations
                         name: "FK_Products_Sellers_SellerId",
                         column: x => x.SellerId,
                         principalTable: "Sellers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -480,6 +489,26 @@ namespace Online_Marketplace.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProductImage",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ImageData = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductImage", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProductImage_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProductReviews",
                 columns: table => new
                 {
@@ -518,9 +547,9 @@ namespace Online_Marketplace.DAL.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { "30b5b666-b386-4261-8ce3-ea7f4ac814d3", "d0ea1aa4-f72b-4cae-ae46-13f24a0fef1f", "Buyer", "BUYER" },
-                    { "6b01d7c0-38aa-49f4-a0bd-fcc657248b0c", "7edc6a6e-d415-417c-8c8e-6f9561f3e94b", "Seller", "SELLER" },
-                    { "e59c7a6d-01db-4ad0-8d93-1b29c4cc3322", "e67118f3-0f34-4b9e-8f49-361b26e6be22", "Admin", "ADMIN" }
+                    { "0d0abdb1-17c2-4d97-a8ef-fca0d4dd7c6c", "5785207c-6b88-415d-a589-71532a38132e", "Seller", "SELLER" },
+                    { "457cfd0a-38f2-44f6-ad84-d42e80722a4e", "dd964f44-3069-4571-b2be-e8d642b3ae37", "Buyer", "BUYER" },
+                    { "56bfb841-c4c7-4283-8cd4-0cb95dce879d", "cd6fa4f2-e4e3-47e3-99d0-506a4bd49d06", "Admin", "ADMIN" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -598,6 +627,11 @@ namespace Online_Marketplace.DAL.Migrations
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Category_SellerId",
+                table: "Category",
+                column: "SellerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Order_BuyerId",
                 table: "Order",
                 column: "BuyerId");
@@ -623,6 +657,11 @@ namespace Online_Marketplace.DAL.Migrations
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ProductImage_ProductId",
+                table: "ProductImage",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProductReviews_BuyerId",
                 table: "ProductReviews",
                 column: "BuyerId");
@@ -636,6 +675,11 @@ namespace Online_Marketplace.DAL.Migrations
                 name: "IX_ProductReviews_ProductIdentity",
                 table: "ProductReviews",
                 column: "ProductIdentity");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_CategoryId",
+                table: "Products",
+                column: "CategoryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_SellerId",
@@ -691,10 +735,10 @@ namespace Online_Marketplace.DAL.Migrations
                 name: "OrderItem");
 
             migrationBuilder.DropTable(
-                name: "ProductReviews");
+                name: "ProductImage");
 
             migrationBuilder.DropTable(
-                name: "Shipping");
+                name: "ProductReviews");
 
             migrationBuilder.DropTable(
                 name: "Wallets");
@@ -716,6 +760,9 @@ namespace Online_Marketplace.DAL.Migrations
 
             migrationBuilder.DropTable(
                 name: "BuyerProfiles");
+
+            migrationBuilder.DropTable(
+                name: "Category");
 
             migrationBuilder.DropTable(
                 name: "SellerProfiles");

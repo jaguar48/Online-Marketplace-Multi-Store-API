@@ -9,7 +9,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace Online_Marketplace.Presentation.Controllers
 {
     [ApiController]
-    [Route("/marketplace/sellers")]
+    [Route("/marketplace/seller")]
     public class SellersController : ControllerBase
     {
 
@@ -29,10 +29,12 @@ namespace Online_Marketplace.Presentation.Controllers
         public async Task<IActionResult> RegisterSeller([FromBody] SellerForRegistrationDto sellerForRegistration)
         {
 
-            var response = await _sellerServices.RegisterSeller(sellerForRegistration);
-
-            return Ok(response);
+            var result = await _sellerServices.RegisterSeller(sellerForRegistration);
+            return Ok(result);
         }
+
+    
+
 
         [HttpPost("createProfile")]
         [Authorize(Roles = "Seller")]

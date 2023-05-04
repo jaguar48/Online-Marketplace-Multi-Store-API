@@ -1,4 +1,5 @@
 using Contracts;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi.Models;
 using NLog;
@@ -7,7 +8,7 @@ using Online_Marketplace.DAL.Entities;
 using Online_Marketplace.Logger.Logger;
 using Online_Marketplace.Shared.Filters;
 using System.Reflection;
-
+using System.IO;
 
 namespace Online_Marketplace.API
 {
@@ -22,6 +23,13 @@ namespace Online_Marketplace.API
 
             builder.Services.ConfigureLoggerService();
             builder.Services.ConfigureAuthServices();
+
+            builder.Services.Configure<FormOptions>(options =>
+            {
+                options.MemoryBufferThreshold = int.MaxValue;
+                options.ValueLengthLimit = int.MaxValue;
+                options.MultipartBodyLengthLimit = int.MaxValue;
+            });
 
             builder.Services.AddAuthentication();
             builder.Services.ConfigureIdentity();
@@ -72,7 +80,7 @@ namespace Online_Marketplace.API
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork<MarketPlaceDBContext>>();
 
             builder.Services.ConfigureServices();
-           builder.Services.AddHttpContextAccessor();
+            builder.Services.AddHttpContextAccessor();
 
             builder.Services.AddAutoMapper(Assembly.Load("Online_Marketplace.BLL"));
 
@@ -85,6 +93,7 @@ namespace Online_Marketplace.API
 
             app.ConfigureExceptionHandler(logger);
 
+            app.UseCors("CorsPolicy");
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -102,11 +111,12 @@ namespace Online_Marketplace.API
             {
                 ForwardedHeaders = ForwardedHeaders.All
             });
-            app.UseCors("CorsPolicy");
+
 
             app.UseAuthentication();
-            app.UseAuthorization();
 
+
+            app.UseAuthorization();
 
             app.MapControllers();
 

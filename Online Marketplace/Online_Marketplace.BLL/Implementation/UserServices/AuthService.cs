@@ -29,9 +29,10 @@ namespace Online_Marketplace.BLL.Implementation.UserServices
 
 
 
+       
+
         public async Task<ServiceResponse<string>> ValidateUser(UserForAuthenticationDto userForAuth)
         {
-
             _logger.LogInfo("Validates user and logs them in");
 
             _user = await _userManager.FindByNameAsync(userForAuth.UserName);
@@ -47,13 +48,18 @@ namespace Online_Marketplace.BLL.Implementation.UserServices
                     Message = "Login failed. Wrong username or password."
                 };
             }
+
+            var role = (await _userManager.GetRolesAsync(_user))[0];
             return new ServiceResponse<string>
             {
                 Success = true,
-                Message = "Login successful."
+                Message = "Login successful.",
+               
+                Role = role
             };
-
         }
+
+
 
         public async Task<string> CreateToken()
         {
@@ -85,7 +91,8 @@ namespace Online_Marketplace.BLL.Implementation.UserServices
                 new Claim(JwtRegisteredClaimNames.Sub, _user.Id.ToString()),
                 new Claim(ClaimTypes.Name, _user.UserName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.NameIdentifier, _user.Id.ToString())
+                new Claim(ClaimTypes.NameIdentifier, _user.Id.ToString()),
+
             };
 
             var roles = await _userManager.GetRolesAsync(_user);

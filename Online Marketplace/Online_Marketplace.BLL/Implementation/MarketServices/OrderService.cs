@@ -3,6 +3,7 @@ using Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using Online_Marketplace.BLL.Extension;
 using Online_Marketplace.BLL.Helpers;
 using Online_Marketplace.BLL.Interface.IMarketServices;
@@ -208,9 +209,8 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
         }
 
 
-        public async Task<bool> CheckoutAsync(int cartId, ShippingMethod shippingMethod)
+        public async Task<string> CheckoutAsync(int cartId, ShippingMethod shippingMethod)
         {
-
             var cart = await _cartRepo.GetSingleByAsync(
                 c => c.Id == cartId,
                 include: q => q.Include(c => c.CartItems).ThenInclude(ci => ci.Product)
@@ -243,9 +243,7 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
                 Reference = orderReference,
                 OrderDate = DateTime.UtcNow,
                 OrderStatus = OrderStatus.Pending,
-
             };
-
 
             var (shippingCost, estimatedDeliveryDate) = await ShippingCalculator.CalculateShippingCostAsync(shippingMethod);
             order.ShippingCost = shippingCost;
@@ -253,8 +251,6 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
             order.EstimateDeliveryDate = estimatedDeliveryDate;
 
             order.TotalAmount = cart.CartItems.Sum(ci => ci.Product.Price * ci.Quantity) + shippingCost;
-
-
 
             await _orderRepo.AddAsync(order);
 
@@ -276,13 +272,15 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
             {
                 Amount = order.TotalAmount,
                 Email = buyer.Email,
-                Reference = Guid.NewGuid().ToString(),
+                Reference = order.Reference,
                 CallbackUrl = "https://localhost:7258/marketplace/Products/verifypayment"
             };
 
-            var transaction = await MakePayment(paymentRequest);
 
-            order.TransactionReference = transaction.Data.Reference;
+            var transactionInitializeResponse = await MakePayment(paymentRequest);
+           
+
+            order.TransactionReference = transactionInitializeResponse.Data.Reference;
             order.PaymentGateway = "paystack";
             order.OrderStatus = OrderStatus.PendingPayment;
 
@@ -290,14 +288,19 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
 
             _logger.LogInfo($"Payment initiated for order with ID {order.Id}");
 
-            return true;
+
+            
+            var authorizationUrl = transactionInitializeResponse.Data.AuthorizationUrl;
+            var trimmedAuthorizationUrl = authorizationUrl.Split('?')[0]; 
+            return trimmedAuthorizationUrl;
+
 
         }
 
 
+
         public async Task<TransactionInitializeResponse> MakePayment(PaymentRequestDto paymentRequestDto)
         {
-
             string secret = _configuration.GetSection("ApiSecret").GetSection("SecretKey").Value;
 
             var paystackApi = new PayStackApi(secret);
@@ -312,14 +315,9 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
 
             var transactionInitializeResponse = paystackApi.Transactions.Initialize(transactionInitializeRequest);
 
-
-            var authorizationUrl = transactionInitializeResponse.Data.AuthorizationUrl;
-            _httpContextAccessor.HttpContext.Response.Redirect(authorizationUrl);
-
             return transactionInitializeResponse;
-
-
         }
+
 
     }
 }

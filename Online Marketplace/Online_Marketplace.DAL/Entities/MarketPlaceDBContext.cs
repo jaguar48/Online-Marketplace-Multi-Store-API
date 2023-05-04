@@ -38,6 +38,8 @@ namespace Online_Marketplace.DAL.Entities
             });
 
 
+
+
             modelBuilder.Entity<OrderItem>(entity =>
             {
                 entity.Property(p => p.Price)
@@ -57,6 +59,10 @@ namespace Online_Marketplace.DAL.Entities
                 .HasForeignKey(ci => ci.ProductIdentity)
                 .OnDelete(DeleteBehavior.NoAction);
             });
+            modelBuilder.Entity<Product>()
+            .HasOne(p => p.Seller)
+            .WithMany(s => s.Products)
+            .OnDelete(DeleteBehavior.NoAction) ;
 
 
 

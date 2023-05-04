@@ -51,22 +51,22 @@ namespace Online_Marketplace.DAL.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "1e98ba27-a0d4-4d5e-8da9-e9be3b7678f2",
-                            ConcurrencyStamp = "304c93fa-c4a2-4f4b-8912-91f1f461e5ba",
+                            Id = "56bfb841-c4c7-4283-8cd4-0cb95dce879d",
+                            ConcurrencyStamp = "cd6fa4f2-e4e3-47e3-99d0-506a4bd49d06",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "a032e714-dd99-46b1-9749-640a86433b8e",
-                            ConcurrencyStamp = "f8512c10-bddc-4990-97ef-494efe6f1109",
+                            Id = "0d0abdb1-17c2-4d97-a8ef-fca0d4dd7c6c",
+                            ConcurrencyStamp = "5785207c-6b88-415d-a589-71532a38132e",
                             Name = "Seller",
                             NormalizedName = "SELLER"
                         },
                         new
                         {
-                            Id = "3f2e37d7-5b00-41b9-83aa-2a55f2475b65",
-                            ConcurrencyStamp = "b6db8fe7-e6f1-4223-9b72-9b2fe594c3d9",
+                            Id = "457cfd0a-38f2-44f6-ad84-d42e80722a4e",
+                            ConcurrencyStamp = "dd964f44-3069-4571-b2be-e8d642b3ae37",
                             Name = "Buyer",
                             NormalizedName = "BUYER"
                         });
@@ -268,6 +268,28 @@ namespace Online_Marketplace.DAL.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("CartItems");
+                });
+
+            modelBuilder.Entity("Online_Marketplace.DAL.Entities.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SellerId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SellerId");
+
+                    b.ToTable("Category");
                 });
 
             modelBuilder.Entity("Online_Marketplace.DAL.Entities.Models.Admin", b =>
@@ -562,6 +584,9 @@ namespace Online_Marketplace.DAL.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -585,11 +610,35 @@ namespace Online_Marketplace.DAL.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CategoryId");
+
                     b.HasIndex("SellerId");
 
                     b.HasIndex("SellerProfileId");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("Online_Marketplace.DAL.Entities.ProductImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<byte[]>("ImageData")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductImage");
                 });
 
             modelBuilder.Entity("Online_Marketplace.DAL.Entities.ProductReviews", b =>
@@ -658,34 +707,6 @@ namespace Online_Marketplace.DAL.Migrations
                     b.HasIndex("SellerIdentity");
 
                     b.ToTable("SellerProfiles");
-                });
-
-            modelBuilder.Entity("Online_Marketplace.DAL.Entities.Shipping", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("EstimateDeliveryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Policy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Rate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ShippingMethod")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Shipping");
                 });
 
             modelBuilder.Entity("Online_Marketplace.DAL.Entities.Wallet", b =>
@@ -820,6 +841,17 @@ namespace Online_Marketplace.DAL.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Online_Marketplace.DAL.Entities.Category", b =>
+                {
+                    b.HasOne("Online_Marketplace.DAL.Entities.Models.Seller", "Seller")
+                        .WithMany()
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Seller");
+                });
+
             modelBuilder.Entity("Online_Marketplace.DAL.Entities.Models.Admin", b =>
                 {
                     b.HasOne("Online_Marketplace.DAL.Entities.Models.User", "User")
@@ -893,17 +925,36 @@ namespace Online_Marketplace.DAL.Migrations
 
             modelBuilder.Entity("Online_Marketplace.DAL.Entities.Product", b =>
                 {
+                    b.HasOne("Online_Marketplace.DAL.Entities.Category", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Online_Marketplace.DAL.Entities.Models.Seller", "Seller")
                         .WithMany("Products")
                         .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("Online_Marketplace.DAL.Entities.SellerProfile", null)
                         .WithMany("Products")
                         .HasForeignKey("SellerProfileId");
 
+                    b.Navigation("Category");
+
                     b.Navigation("Seller");
+                });
+
+            modelBuilder.Entity("Online_Marketplace.DAL.Entities.ProductImage", b =>
+                {
+                    b.HasOne("Online_Marketplace.DAL.Entities.Product", "Product")
+                        .WithMany("Images")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("Online_Marketplace.DAL.Entities.ProductReviews", b =>
@@ -961,6 +1012,11 @@ namespace Online_Marketplace.DAL.Migrations
                     b.Navigation("CartItems");
                 });
 
+            modelBuilder.Entity("Online_Marketplace.DAL.Entities.Category", b =>
+                {
+                    b.Navigation("Products");
+                });
+
             modelBuilder.Entity("Online_Marketplace.DAL.Entities.Models.Seller", b =>
                 {
                     b.Navigation("Products");
@@ -973,6 +1029,8 @@ namespace Online_Marketplace.DAL.Migrations
 
             modelBuilder.Entity("Online_Marketplace.DAL.Entities.Product", b =>
                 {
+                    b.Navigation("Images");
+
                     b.Navigation("ProductReview");
                 });
 

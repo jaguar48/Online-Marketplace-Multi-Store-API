@@ -11,7 +11,7 @@ using System.Text;
 namespace Online_Marketplace.Presentation.Controllers
 {
     [ApiController]
-    [Route("marketplace/[controller]")]
+    [Route("marketplace/orders")]
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -61,24 +61,21 @@ namespace Online_Marketplace.Presentation.Controllers
             
         }
         [Authorize(Roles = "Buyer")]
-        [HttpPost("checkout/{cartId:int}")]
+        [HttpPost("checkout")]
         [SwaggerOperation(Summary = "Checkout a cart.", Description = "Requires buyer authorization.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Cart checked out successfully.")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Failed to checkout cart.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error.")]
         public async Task<IActionResult> Checkout(int cartId, ShippingMethod shippingMethod)
         {
-            var result = await _orderService.CheckoutAsync(cartId, shippingMethod);
+            var authorizationUrl = await _orderService.CheckoutAsync(cartId, shippingMethod);
+            return Redirect(authorizationUrl);
 
-            if (result)
-            {
-                return Ok("Cart checked out successfully");
-            }
-            else
-            {
-                return BadRequest("Error occurred while checking out cart");
-            }
         }
+
+    
+
+
 
         [Authorize(Roles = "Seller")]
         [HttpGet("{orderId}/receipt")]

@@ -29,10 +29,13 @@ namespace Online_Marketplace.Presentation.Controllers
         {
             var response = await _authentication.ValidateUser(user);
 
+            
+
             if (!response.Success)
                 return BadRequest(response);
 
-            return Ok(new { Token = await _authentication.CreateToken() });
+            return Ok(new { Token = await _authentication.CreateToken(), Role = response.Role });
+          
         }
     }
 }

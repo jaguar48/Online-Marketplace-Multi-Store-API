@@ -2,12 +2,15 @@
 using Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using Online_Marketplace.BLL.Helpers;
 using Online_Marketplace.BLL.Interface.IMarketServices;
 using Online_Marketplace.DAL.Entities;
 using Online_Marketplace.DAL.Entities.Models;
 using Online_Marketplace.Logger.Logger;
 using Online_Marketplace.Shared.DTOs;
 using System.Security.Claims;
+
 
 namespace Online_Marketplace.BLL.Implementation.MarketServices
 {
@@ -19,6 +22,7 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
         private readonly IRepository<Buyer> _buyerRepo;
         private readonly IRepository<Seller> _sellerRepo;
         private readonly IRepository<Cart> _cartRepo;
+        private readonly IRepository<Category> _catRepo;
         private readonly IRepository<OrderItem> _orderitemRepo;
         private readonly IRepository<ProductReviews> _productreivewRepo;
         private readonly IUnitOfWork _unitOfWork;
@@ -33,6 +37,7 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _productRepo = _unitOfWork.GetRepository<Product>();
+            _catRepo = _unitOfWork.GetRepository<Category>();
             _sellerRepo = _unitOfWork.GetRepository<Seller>();
             _cartRepo = _unitOfWork.GetRepository<Cart>();
             _buyerRepo = _unitOfWork.GetRepository<Buyer>();
@@ -43,7 +48,7 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
 
 
 
-        public async Task<string> CreateProduct(ProductCreateDto productDto)
+        public async Task<string> CreateProductAsync(ProductCreateDto productDto)
         {
             var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -52,9 +57,7 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
                 throw new Exception("User not found");
             }
 
-
             var product = _mapper.Map<Product>(productDto);
-
 
             Seller seller = await _sellerRepo.GetSingleByAsync(s => s.UserId == userId);
 
@@ -65,15 +68,78 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
 
             product.SellerId = seller.Id;
 
+            // Retrieve all categories
+            var categories = await _catRepo.GetAllAsync(c => c.SellerId == seller.Id);
+
+            // Add the selected category to the produc
+
+            if (productDto.CategoryId > 0)
+            {
+                var category = categories.FirstOrDefault(c => c.Id == productDto.CategoryId);
+                if (category != null)
+                {
+                    product.Category = category;
+                }
+            }
+
+            // Save the images to the database
+            if (productDto.Images != null && productDto.Images.Any())
+            {
+                foreach (var imageString in productDto.Images)
+                {
+                    var imageData = Convert.FromBase64String(imageString);
+                    var productImage = new ProductImage { ImageData = imageData };
+                    product.Images.Add(productImage);
+                }
+            }
+
             await _productRepo.AddAsync(product);
             await _unitOfWork.SaveChangesAsync();
 
-            return "product created successfully";
-
+            var result = new { success = true, message = "product created successfully" };
+            return JsonConvert.SerializeObject(result);
         }
 
 
-        public async Task<string> UpdateProduct(int productId, ProductCreateDto productDto)
+
+
+        public async Task<string> AddCategory(CreateCategoryDto categoryDto)
+        {
+            var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId == null)
+            {
+                throw new Exception("User not found");
+            }
+
+            var category = _mapper.Map<Category>(categoryDto);
+
+            Seller seller = await _sellerRepo.GetSingleByAsync(s => s.UserId == userId);
+
+            if (seller == null)
+            {
+                throw new Exception("Seller not found");
+            }
+
+            category.SellerId = seller.Id;
+
+            await _catRepo.AddAsync(category);
+            await _unitOfWork.SaveChangesAsync();
+
+            var result = new { success = true, message = "category created successfully" };
+            return JsonConvert.SerializeObject(result);
+
+        }
+
+        public async Task<List<CategoryDto>> GetAllCategoriesAsync()
+        {
+            var categories = await _catRepo.GetAllAsync(include: c => c.Include(p => p.Products));
+
+            return _mapper.Map<List<CategoryDto>>(categories);
+        }
+
+    
+        public async Task<string> UpdateProductAsync(int productId, ProductCreateDto productDto)
         {
 
             var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -104,11 +170,99 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
             await _productRepo.UpdateAsync(ProductCreateDto);
             await _unitOfWork.SaveChangesAsync();
 
-            return "Product updated successfully";
+            var result = new { success = true, message = "Product updated successfully" };
+            return JsonConvert.SerializeObject(result);
+            
+        }
+       
 
+        public async Task<bool> RemoveFromCartAsync(int productId)
+        {
+            var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var buyer = await _buyerRepo.GetSingleByAsync(b => b.UserId == userId);
+
+            if (buyer == null)
+            {
+                throw new Exception("Buyer not found");
+            }
+
+            var cart = await _cartRepo.GetSingleByAsync(c => c.BuyerId == buyer.Id, include: q => q.Include(c => c.CartItems));
+
+            if (cart == null || cart.CartItems == null)
+            {
+                return false;
+            }
+
+            var cartItem = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
+
+            if (cartItem == null)
+            {
+                return false;
+            }
+
+            cart.CartItems.Remove(cartItem);
+
+            await _cartRepo.UpdateAsync(cart);
+
+            _logger.LogInfo($"Removed product with ID {productId} from cart of buyer with ID {buyer.Id}");
+
+            return true;
+        }
+        public async Task<List<CartItemDto>> GetCartItemsAsync()
+        {
+            var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var buyer = await _buyerRepo.GetSingleByAsync(b => b.UserId == userId);
+
+            if (buyer == null)
+            {
+                throw new Exception("Buyer not found");
+            }
+
+            var cart = await _cartRepo.GetSingleByAsync(c => c.BuyerId == buyer.Id, include: q => q.Include(c => c.CartItems).ThenInclude(ci => ci.Product));
+
+            if (cart == null || cart.CartItems == null)
+            {
+                return new List<CartItemDto>();
+            }
+
+            return cart.CartItems.Select(ci => new CartItemDto
+            {
+                Id = ci.Id,
+                ProductId = ci.ProductId,
+                Name = ci.Product.Name,
+                Quantity = ci.Quantity,
+                Price = ci.Product.Price,
+                CartId = ci.CartId
+            }).ToList();
+        }
+        public async Task<CartItemDto> GetCartIdAsync(int id)
+        {
+            var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var buyer = await _buyerRepo.GetSingleByAsync(b => b.UserId == userId);
+
+            if (buyer == null)
+            {
+                throw new Exception("Buyer not found");
+            }
+
+            var cart = await _cartRepo.GetSingleByAsync(c => c.Id == id && c.BuyerId == buyer.Id, include: q => q.Include(c => c.CartItems).ThenInclude(ci => ci.Product));
+
+            if (cart == null)
+            {
+                throw new Exception("Cart not found");
+            }
+
+
+            return _mapper.Map<CartItemDto>(cart);
+
+        
         }
 
-        public async Task<string> DeleteProduct(int productId)
+       
+        public async Task<string> DeleteProductAsync(int productId)
         {
 
             var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -136,14 +290,16 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
             }
 
             await _productRepo.DeleteAsync(existingProduct);
-            await _unitOfWork.SaveChangesAsync();
+            
 
-            return "Product deleted successfully";
+            var result = new { success = true, message = "Product deleted successfully" };
+            return JsonConvert.SerializeObject(result);
 
+          
         }
 
 
-        public async Task<List<ProductCreateDto>> GetSellerProducts()
+        public async Task<List<ProductViewDto>> GetSellerProductsAsync()
         {
 
             var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -158,12 +314,12 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
             IEnumerable<Product> sellerPruducts = await _productRepo.GetByAsync(p => p.SellerId == seller.Id);
 
 
-            return _mapper.Map<List<ProductCreateDto>>(sellerPruducts);
+            return _mapper.Map<List<ProductViewDto>>(sellerPruducts);
         }
 
 
 
-        public async Task<List<ProductCreateDto>> GetProducts(ProductSearchDto searchDto)
+        public async Task<List<ProductCreateDto>> SearchProductsAsync(ProductSearchDto searchDto)
         {
 
             var products = await _productRepo.GetAllAsync();
@@ -182,13 +338,13 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
 
 
         }
-
-        public async Task<List<ProductCreateDto>> ViewProducts()
+        
+        public async Task<List<ProductViewDto>> ViewProductsAsync()
         {
             var products = await _productRepo.GetAllAsync(include: p => p.Include(r => r.ProductReview));
 
 
-            var productDtos = _mapper.Map<List<ProductCreateDto>>(products);
+            var productDtos = _mapper.Map<List<ProductViewDto>>(products);
 
 
             return productDtos;
@@ -214,10 +370,11 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
                 throw new Exception("Product not found");
             }
 
-            if (quantity <= 0)
+            if (quantity <= 0 || quantity > product.StockQuantity)
             {
                 throw new ArgumentException("Invalid quantity.");
             }
+
 
             var cart = await _cartRepo.GetSingleByAsync(c => c.BuyerId == buyer.Id, include: q => q.Include(c => c.CartItems));
 
@@ -258,6 +415,61 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
         }
 
 
+        public async Task<CategoryWithProductsDto> GetCategoryWithProductsAsync(int categoryId)
+        {
+            var category = await _catRepo.GetSingleByAsync(c => c.Id == categoryId, include: c => c.Include(p => p.Products));
+
+            if (category == null)
+            {
+                throw new Exception("Category not found");
+            }
+
+
+            var categoryDto = new CategoryWithProductsDto
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Products = category.Products.Select(p => new ProductsDto
+                {
+
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description
+                }).ToList()
+            };
+
+            return _mapper.Map<CategoryWithProductsDto>(category);
+        }
+
+
+        public async Task<ProductViewDto> ProductDetailAsync(int id)
+        {
+            var product = await _productRepo.GetSingleByAsync(
+        x => x.Id == id,
+        include: q => q
+            .Include(p => p.Category)
+            .Include(p => p.Seller)
+    );
+
+            if (product == null)
+            {
+                throw new Exception("Product not found");
+            }
+
+            return new ProductViewDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                StockQuantity = product.StockQuantity,
+                Brand = product.Brand,
+                CategoryId = product.Category.Id,
+                CategoryName = product.Category.Name,
+                BusinessName = product.Seller.BusinessName
+              
+            };
+        }
 
         public async Task<string> AddReview(ReviewDto reviewDto)
         {
@@ -286,6 +498,6 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
             return "Review added successfully";
         }
 
-
+        
     }
 }
