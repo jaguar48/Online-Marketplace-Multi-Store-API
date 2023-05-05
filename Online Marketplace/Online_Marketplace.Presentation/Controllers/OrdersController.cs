@@ -24,20 +24,20 @@ namespace Online_Marketplace.Presentation.Controllers
         }
 
         [Authorize(Roles = "Buyer")]
-        [HttpGet("buyer-order-history")]
+        [HttpGet("buyer-order")]
         [SwaggerOperation(Summary = "Get order history for the current buyer", Description = "Requires buyer authorization.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Order history retrieved successfully.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error.")]
         public async Task<IActionResult> BuyerOrderHistory()
         {
-            var orders = await _orderService.GetOrderHistoryAsync();
+            var orders = await _orderService.GetBuyerOrderHistoryAsync();
             return Ok(orders);
 
 
         }
 
         [Authorize(Roles = "Seller")]
-        [HttpGet("seller-view-orders")]
+        [HttpGet("seller-orders")]
         [SwaggerOperation(Summary = "Get order history for the current seller", Description = "Requires seller authorization.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Order history retrieved successfully.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error.")]
@@ -60,6 +60,21 @@ namespace Online_Marketplace.Presentation.Controllers
             return Ok(orderStatuses);
             
         }
+
+        [Authorize(Roles = "Seller")]
+        [HttpGet("order/{orderid}")]
+        [SwaggerOperation(Summary = "Get a specific order", Description = "No authorization required.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Order  retrieved successfully.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error.")]
+        public async Task<IActionResult> GetOrder(int orderid)
+        {
+
+            var orderStatuses = await _orderService.GetOrderByIdAsync(orderid);
+            return Ok(orderStatuses);
+
+        }
+
+
         [Authorize(Roles = "Buyer")]
         [HttpPost("checkout")]
         [SwaggerOperation(Summary = "Checkout a cart.", Description = "Requires buyer authorization.")]
@@ -97,11 +112,12 @@ namespace Online_Marketplace.Presentation.Controllers
         [SwaggerOperation(Summary = "Update the status of an order.", Description = "Requires seller authorization.")]
         [SwaggerResponse(StatusCodes.Status200OK, "The order status was updated successfully.")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The request was invalid or the order status could not be updated.")]
-        public async Task<IActionResult> UpdateOrderStatus(UpdateOrderStatusDto updateOrderStatusDto)
+        public async Task<IActionResult> UpdateOrderStatus(int OrderId, string Status)
         {
-            await _orderService.UpdateOrderStatusAsync(updateOrderStatusDto);
+            await _orderService.UpdateOrderStatusAsync(OrderId, Status);
             return Ok();
         }
+
 
     }
 }

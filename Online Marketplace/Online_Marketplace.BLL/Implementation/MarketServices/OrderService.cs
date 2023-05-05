@@ -49,59 +49,102 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
         }
 
 
-
-        public async Task<List<OrderDto>> GetOrderHistoryAsync()
+        public async Task<List<OrderDto>> GetBuyerOrderHistoryAsync()
         {
-
             var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var buyer = await _buyerRepo.GetSingleByAsync(b => b.UserId == userId);
 
             var orders = await _orderRepo.GetAllAsync(o => o.BuyerId == buyer.Id,
-                include: o => o.Include(o => o.OrderItems).ThenInclude(oi => oi.Product));
+                include: o => o.Include(o => o.OrderItems).ThenInclude(oi => oi.Product).ThenInclude(p => p.Seller));
 
-            var orderDtos = _mapper.Map<List<OrderDto>>(orders);
+            var orderDtos = orders.Select(order =>
+            {
+                var orderDto = _mapper.Map<OrderDto>(order);
+                orderDto.Total = order.OrderItems.Sum(oi => oi.Price * oi.Quantity);
+
+                orderDto.OrderItems = order.OrderItems.Select(oi =>
+                {
+                    var orderItemDto = _mapper.Map<OrderItemDto>(oi);
+                    orderItemDto.ProductName = oi.Product.Name;
+                    orderItemDto.Total = oi.Price * oi.Quantity;
+                    return orderItemDto;
+                }).ToList();
+
+                orderDto.SellerBusinessName = order.OrderItems.FirstOrDefault()?.Product?.Seller?.BusinessName;
+
+                return orderDto;
+            }).ToList();
 
             return orderDtos;
-
-
         }
+
+
 
         public async Task<List<OrderDto>> GetSellerOrderHistoryAsync()
         {
-
             var sellerId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
             var seller = await _sellerRepo.GetSingleByAsync(b => b.UserId == sellerId);
-
-
             var sellerProducts = await _productRepo.GetAllAsync(p => p.SellerId == seller.Id);
-
-
-
             var productIds = sellerProducts.Select(p => p.Id);
-
             var orderItems = await _orderitemRepo.GetAllAsync(
-            oi => productIds.Contains(oi.ProductId),
-            include: oi => oi.Include(oi => oi.Order).ThenInclude(o => o.Buyer));
-
-
+                oi => productIds.Contains(oi.ProductId),
+                include: oi => oi.Include(oi => oi.Order).ThenInclude(o => o.Buyer));
 
             var orders = orderItems.GroupBy(oi => oi.OrderId).Select(group =>
             {
                 var order = group.First().Order;
 
+               
                 var orderDto = _mapper.Map<OrderDto>(order);
+                orderDto.Email = order.Buyer.Email;
                 orderDto.Total = group.Sum(oi => oi.Price * oi.Quantity);
-                orderDto.OrderItems = _mapper.Map<List<OrderItemDto>>(group);
+                orderDto.OrderItems = order.OrderItems.Select(o => new OrderItemDto
+                {
+                    ProductId = o.ProductId,
+                    ProductName = o.Product.Name,
+                    Price = o.Price,
+                    Quantity = o.Quantity,
+                    Total = o.Quantity * o.Price
+                }).ToList();
 
                 return orderDto;
-            });
+            }).ToList();
 
-            return orders.ToList();
-
-
+            return orders;
         }
 
+        public async Task<OrderDto> GetOrderByIdAsync(int orderId)
+        {
+            var sellerId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var seller = await _sellerRepo.GetSingleByAsync(b => b.UserId == sellerId);
+            var sellerProducts = await _productRepo.GetAllAsync(p => p.SellerId == seller.Id);
+            var productIds = sellerProducts.Select(p => p.Id);
+            var orderItems = await _orderitemRepo.GetAllAsync(
+                oi => productIds.Contains(oi.ProductId),
+                include: oi => oi.Include(oi => oi.Order).ThenInclude(o => o.Buyer)
+                                           .Include(oi => oi.Product));
+
+            var order = orderItems.FirstOrDefault(oi => oi.OrderId == orderId)?.Order;
+
+            if (order == null)
+            {
+                return null;
+            }
+
+            var orderDto = _mapper.Map<OrderDto>(order);
+            orderDto.Email = order.Buyer.Email;
+            orderDto.Total = order.OrderItems.Sum(oi => oi.Price * oi.Quantity);
+            orderDto.OrderItems = order.OrderItems.Select(o => new OrderItemDto
+            {
+                ProductId = o.ProductId,
+                ProductName = o.Product.Name,
+                Price = o.Price,
+                Quantity = o.Quantity,
+                Total = o.Quantity * o.Price
+            }).ToList();
+
+            return orderDto;
+        }
 
 
 
@@ -188,20 +231,20 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
 
 
 
-        public async Task UpdateOrderStatusAsync(UpdateOrderStatusDto updateOrderStatusDto)
+        public async Task UpdateOrderStatusAsync(int OrderId, string Status )
         {
 
             var sellerId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var seller = await _sellerRepo.GetSingleByAsync(s => s.UserId == sellerId);
 
-            var order = await _orderRepo.GetSingleByAsync(o => o.Id == updateOrderStatusDto.OrderId && o.OrderItems.Any(oi => oi.Product.SellerId == seller.Id && oi.Product.Id == updateOrderStatusDto.ProductId));
+            var order = await _orderRepo.GetSingleByAsync(o => o.Id == OrderId && o.OrderItems.Any(oi => oi.Product.SellerId == seller.Id));
 
             if (order == null)
             {
                 throw new Exception("Order not found");
             }
 
-            var newStatus = Enum.Parse<OrderStatus>(updateOrderStatusDto.Status);
+            var newStatus = Enum.Parse<OrderStatus>(Status);
             order.OrderStatus = newStatus;
 
             await _orderRepo.UpdateAsync(order);
