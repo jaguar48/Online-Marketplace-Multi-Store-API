@@ -38,11 +38,11 @@ namespace Online_Marketplace.BLL.Implementation.UserServices
 
         public async Task<bool> SendVerificationEmail(string email, string verificationToken)
         {
-            var apiKey = "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";
+            var apiKey = "";
             var client = new SendGridClient(apiKey);
 
-            var from = new EmailAddress("support@synctrades.com");
-            var to = new EmailAddress("agrictime@gmail.com");
+            var from = new EmailAddress("");
+            var to = new EmailAddress("");
             var subject = "Account Verification";
 
             var verificationUrl = $"{_configuration["AppBaseUrl"]}/marketplace/authentication/verify?email={HttpUtility.UrlEncode(email)}&verificationToken={verificationToken}";
