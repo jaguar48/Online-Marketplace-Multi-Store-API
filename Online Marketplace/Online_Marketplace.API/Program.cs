@@ -9,6 +9,7 @@ using Online_Marketplace.Logger.Logger;
 using Online_Marketplace.Shared.Filters;
 using System.Reflection;
 using System.IO;
+using Microsoft.Extensions.FileProviders;
 
 namespace Online_Marketplace.API
 {
@@ -22,7 +23,13 @@ namespace Online_Marketplace.API
             builder.Services.ConfigureIISIntegration();
 
             builder.Services.ConfigureLoggerService();
-            builder.Services.ConfigureAuthServices();
+
+            builder.Services.Configure<FormOptions>(o =>
+            {
+                o.ValueLengthLimit = int.MaxValue;
+                o.MultipartBodyLengthLimit = int.MaxValue;
+                o.MemoryBufferThreshold = int.MaxValue;
+            });
 
             builder.Services.Configure<FormOptions>(options =>
             {
@@ -33,6 +40,7 @@ namespace Online_Marketplace.API
 
             builder.Services.AddAuthentication();
             builder.Services.ConfigureIdentity();
+            builder.Services.ConfigureEmail(builder.Configuration);
 
             builder.Services.ConfigureJWT(builder.Configuration);
 
@@ -40,10 +48,9 @@ namespace Online_Marketplace.API
 
             builder.Services.AddScoped<ValidationFilterAttribute>();
 
+
             builder.Services.AddControllers().AddApplicationPart(typeof(Presentation.AssemblyReference).Assembly);
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-
             builder.Services.AddSwaggerGen(c =>
             {
                 c.EnableAnnotations();
@@ -94,31 +101,33 @@ namespace Online_Marketplace.API
             app.ConfigureExceptionHandler(logger);
 
             app.UseCors("CorsPolicy");
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            if (app.Environment.IsProduction())
-                app.UseHsts();
 
             app.UseHttpsRedirection();
 
             app.UseStaticFiles();
+            app.UseStaticFiles(new StaticFileOptions()
+            {
+                FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), @"Resources")),
+                RequestPath = new PathString("/Resources")
+            });
+
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.All
             });
 
-
             app.UseAuthentication();
-
 
             app.UseAuthorization();
 
             app.MapControllers();
+
+         
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "MarketPlaceApp v1");
+            });
 
             app.Run();
         }

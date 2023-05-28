@@ -12,8 +12,8 @@ using Online_Marketplace.DAL.Entities;
 namespace Online_Marketplace.DAL.Migrations
 {
     [DbContext(typeof(MarketPlaceDBContext))]
-    [Migration("20230427195857_updates")]
-    partial class updates
+    [Migration("20230523210053_fresh")]
+    partial class fresh
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,22 +54,22 @@ namespace Online_Marketplace.DAL.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "56bfb841-c4c7-4283-8cd4-0cb95dce879d",
-                            ConcurrencyStamp = "cd6fa4f2-e4e3-47e3-99d0-506a4bd49d06",
+                            Id = "33d3a537-6d65-4f34-9f5c-2931d6d98115",
+                            ConcurrencyStamp = "4aa6710e-68a7-4420-8f7e-cf59fd0f9b13",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "0d0abdb1-17c2-4d97-a8ef-fca0d4dd7c6c",
-                            ConcurrencyStamp = "5785207c-6b88-415d-a589-71532a38132e",
+                            Id = "1f77e37b-704c-42d0-ae59-3e0f624df6bc",
+                            ConcurrencyStamp = "86accf09-b6cd-4119-ac2a-a2bb6336ff49",
                             Name = "Seller",
                             NormalizedName = "SELLER"
                         },
                         new
                         {
-                            Id = "457cfd0a-38f2-44f6-ad84-d42e80722a4e",
-                            ConcurrencyStamp = "dd964f44-3069-4571-b2be-e8d642b3ae37",
+                            Id = "a46b133f-912a-4e09-a0dc-e215803b23b6",
+                            ConcurrencyStamp = "3f03dadf-64b7-4a16-834c-1573b4102735",
                             Name = "Buyer",
                             NormalizedName = "BUYER"
                         });
@@ -475,6 +475,9 @@ namespace Online_Marketplace.DAL.Migrations
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("VerificationToken")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Http;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Online_Marketplace.Shared.DTOs
@@ -23,7 +24,9 @@ namespace Online_Marketplace.Shared.DTOs
         [Required(ErrorMessage = "Category is required")]
         public int CategoryId { get; set; }
 
-        public List<string> Images { get; set; }
+   
+        public IFormFile? File { get; set; }
     }
+
 }
 

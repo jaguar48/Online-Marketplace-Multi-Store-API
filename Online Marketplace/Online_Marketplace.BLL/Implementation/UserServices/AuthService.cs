@@ -1,14 +1,19 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Online_Marketplace.BLL.Helpers;
 using Online_Marketplace.BLL.Interface.IUserServices;
 using Online_Marketplace.DAL.Entities.Models;
 using Online_Marketplace.Logger.Logger;
 using Online_Marketplace.Shared;
 using Online_Marketplace.Shared.DTOs;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Mail;
 using System.Security.Claims;
 using System.Text;
+using System.Web;
 
 namespace Online_Marketplace.BLL.Implementation.UserServices
 {
@@ -18,18 +23,87 @@ namespace Online_Marketplace.BLL.Implementation.UserServices
         private readonly UserManager<User> _userManager;
         private readonly IConfiguration _configuration;
         private User? _user;
+        private readonly EmailSettings _emailConfig;
 
-
-        public AuthService(ILoggerManager logger, UserManager<User> userManager, IConfiguration configuration)
+        public AuthService( ILoggerManager logger, UserManager<User> userManager, IConfiguration configuration, EmailSettings emailConfig)
         {
             _logger = logger;
             _userManager = userManager;
+            _emailConfig = emailConfig;
             _configuration = configuration;
         }
 
 
 
-       
+
+        public async Task<bool> SendVerificationEmail(string email, string verificationToken)
+        {
+            var apiKey = "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";
+            var client = new SendGridClient(apiKey);
+
+            var from = new EmailAddress("support@synctrades.com");
+            var to = new EmailAddress("agrictime@gmail.com");
+            var subject = "Account Verification";
+
+            var verificationUrl = $"{_configuration["AppBaseUrl"]}/marketplace/authentication/verify?email={HttpUtility.UrlEncode(email)}&verificationToken={verificationToken}";
+            var plainTextContent = $"Please click the following link to verify your account: {verificationUrl}";
+            var htmlContent = $"<p>Please click the following link to verify your account: <a href='{verificationUrl}'>{verificationUrl}</a></p>";
+
+            var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
+
+            var response = await client.SendEmailAsync(msg);
+
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<User> VerifyUser(string email, string verificationToken)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+
+            if (user != null && !user.EmailConfirmed && user.VerificationToken == verificationToken)
+            {
+                user.EmailConfirmed = true;
+                user.VerificationToken = null;
+                await _userManager.UpdateAsync(user);
+
+                return user;
+            }
+
+            return null;
+        }
+
+
+        public async Task<bool> SendPasswordResetEmail(string email, string resetToken)
+        {
+            var client = new SendGridClient(_emailConfig.ApiKey);
+
+            var from = new EmailAddress(_emailConfig.SenderEmail);
+            var to = new EmailAddress(email);
+            var subject = "Password Reset";
+
+            var resetUrl = $"{_configuration["AppBaseUrl"]}/marketplace/authentication/reset-password?email={HttpUtility.UrlEncode(email)}&token={resetToken}";
+            var plainTextContent = $"Click the following link to reset your password: {resetUrl}";
+            var htmlContent = $"<p>Click the following link to reset your password: <a href='{resetUrl}'>{resetUrl}</a></p>";
+
+            var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
+
+            var response = await client.SendEmailAsync(msg);
+
+            return response.IsSuccessStatusCode;
+        }
+
+        
+        public async Task<bool> ResetPassword(string email, string token, string newPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return false;
+            }
+
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+            return result.Succeeded;
+        }
 
         public async Task<ServiceResponse<string>> ValidateUser(UserForAuthenticationDto userForAuth)
         {

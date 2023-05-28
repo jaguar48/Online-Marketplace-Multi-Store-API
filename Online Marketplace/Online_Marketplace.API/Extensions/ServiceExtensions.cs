@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Online_Marketplace.BLL.Helpers;
 using Online_Marketplace.BLL.Implementation.MarketServices;
 using Online_Marketplace.BLL.Implementation.ProfileServices;
 using Online_Marketplace.BLL.Implementation.Services;
@@ -14,6 +17,7 @@ using Online_Marketplace.DAL.Entities;
 using Online_Marketplace.DAL.Entities.Models;
 using Online_Marketplace.Logger;
 using Online_Marketplace.Logger.Logger;
+using SendGrid.Helpers.Mail;
 using System.Text;
 
 namespace Online_Marketplace.API.Extensions
@@ -27,8 +31,17 @@ namespace Online_Marketplace.API.Extensions
             builder.AllowAnyOrigin()
             .AllowAnyMethod()
             .AllowAnyHeader());
-
         });
+
+        
+        public static void ConfigureEmail(this IServiceCollection services, IConfiguration configuration)
+        {
+            
+            services.Configure<EmailSettings>(options =>configuration.GetSection("EmailSettings").Bind(options));
+            services.AddScoped<EmailSettings>();
+        }
+
+
 
         public static void ConfigureIISIntegration(this IServiceCollection services) =>
         services.Configure<IISOptions>(options =>
@@ -88,8 +101,14 @@ namespace Online_Marketplace.API.Extensions
 
         public static void ConfigureServices(this IServiceCollection services)
         {
+            services.Configure<FormOptions>(options =>
+            {
+                options.ValueLengthLimit = int.MaxValue;
+                options.MultipartBodyLengthLimit = int.MaxValue;
+                options.MemoryBufferThreshold = int.MaxValue;
+            });
             services.AddScoped<IUserServices, UserServices>();
-
+            services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IAdminServices, AdminServices>();
             services.AddScoped<IBuyerServices, BuyerServices>();
             services.AddScoped<ISellerServices, SellerServices>();

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Online_Marketplace.DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class updates : Migration
+    public partial class fresh : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -34,6 +34,7 @@ namespace Online_Marketplace.DAL.Migrations
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    VerificationToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -547,9 +548,9 @@ namespace Online_Marketplace.DAL.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { "0d0abdb1-17c2-4d97-a8ef-fca0d4dd7c6c", "5785207c-6b88-415d-a589-71532a38132e", "Seller", "SELLER" },
-                    { "457cfd0a-38f2-44f6-ad84-d42e80722a4e", "dd964f44-3069-4571-b2be-e8d642b3ae37", "Buyer", "BUYER" },
-                    { "56bfb841-c4c7-4283-8cd4-0cb95dce879d", "cd6fa4f2-e4e3-47e3-99d0-506a4bd49d06", "Admin", "ADMIN" }
+                    { "1f77e37b-704c-42d0-ae59-3e0f624df6bc", "86accf09-b6cd-4119-ac2a-a2bb6336ff49", "Seller", "SELLER" },
+                    { "33d3a537-6d65-4f34-9f5c-2931d6d98115", "4aa6710e-68a7-4420-8f7e-cf59fd0f9b13", "Admin", "ADMIN" },
+                    { "a46b133f-912a-4e09-a0dc-e215803b23b6", "3f03dadf-64b7-4a16-834c-1573b4102735", "Buyer", "BUYER" }
                 });
 
             migrationBuilder.CreateIndex(

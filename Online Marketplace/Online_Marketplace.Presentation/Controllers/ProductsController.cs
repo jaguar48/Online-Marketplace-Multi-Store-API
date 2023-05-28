@@ -27,7 +27,7 @@ namespace Online_Marketplace.Presentation.Controllers
         [SwaggerOperation(Summary = "Create a new product.", Description = "Requires seller authorization.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns the newly created product.", typeof(Product))]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error.")]
-        public async Task<IActionResult> CreateProduct(ProductCreateDto productdto)
+        public async Task<IActionResult> CreateProduct([FromForm] ProductCreateDto productdto)
         {
 
             var product = await _productService.CreateProductAsync(productdto);

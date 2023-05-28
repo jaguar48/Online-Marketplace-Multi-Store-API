@@ -1,12 +1,11 @@
-﻿using Online_Marketplace.DAL.Entities.Models;
+﻿using Microsoft.AspNetCore.Http;
+using Online_Marketplace.DAL.Entities.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Online_Marketplace.DAL.Entities
 {
     public class Product
-
-
     {
         [Key]
         public int Id { get; set; }
@@ -31,8 +30,9 @@ namespace Online_Marketplace.DAL.Entities
 
         public Category Category { get; set; }
 
-        public ICollection<ProductImage> Images { get; set; }
+        public string ImagePath { get; set; } // Store the file path instead of the IFormFile
 
         public virtual ICollection<ProductReviews> ProductReview { get; set; }
     }
+
 }

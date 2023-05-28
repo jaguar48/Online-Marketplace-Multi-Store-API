@@ -9,6 +9,10 @@ namespace Online_Marketplace.BLL.Interface.IUserServices
         Task<ServiceResponse<string>> ValidateUser(UserForAuthenticationDto userForAuth);
         Task<string> CreateToken();
 
+        public Task<User> VerifyUser(string email, string verificationToken);
+        public Task<bool> SendVerificationEmail(string email, string verificationToken);
+        public Task<bool> ResetPassword(string email, string token, string newPassword);
+        public Task<bool> SendPasswordResetEmail(string email, string resetToken);
     }
 
 }

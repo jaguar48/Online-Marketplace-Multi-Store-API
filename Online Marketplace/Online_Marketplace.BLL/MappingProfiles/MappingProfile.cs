@@ -33,8 +33,10 @@ namespace Online_Marketplace.BLL.MappingProfiles
             CreateMap<CartItemDto , Cart >();
             CreateMap<Cart, CartItemDto >();
 
-            CreateMap<ProductViewDto, Product>();
-            CreateMap<Product, ProductViewDto>();
+          
+            CreateMap<Product, ProductViewDto>()
+                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImagePath));
+
 
             CreateMap<ProductReviews, ReviewDto>();
             CreateMap<ReviewDto, ProductReviews>();

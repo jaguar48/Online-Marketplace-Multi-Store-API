@@ -6,23 +6,27 @@ namespace Online_Marketplace.Shared.DTOs
         [Required]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "name is required")]
+        [Required(ErrorMessage = "Name is required")]
         public string Name { get; set; }
 
         [Required(ErrorMessage = "Description is required")]
         public string Description { get; set; }
 
-        [Required(ErrorMessage = "price is required")]
+        [Required(ErrorMessage = "Price is required")]
         public decimal Price { get; set; }
 
-        [Required(ErrorMessage = "stock is required")]
+        [Required(ErrorMessage = "Stock is required")]
         public int StockQuantity { get; set; }
 
-        [Required(ErrorMessage = "brand is required")]
+        [Required(ErrorMessage = "Brand is required")]
         public string Brand { get; set; }
+
         public int CategoryId { get; set; }
         public string CategoryName { get; set; }
 
         public string BusinessName { get; set; }
+
+        public string ImageUrl { get; set; } // Add this property for the image URL or path
     }
+
 }

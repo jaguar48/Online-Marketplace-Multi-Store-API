@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Online_Marketplace.BLL.Extension;
 using Online_Marketplace.BLL.Helpers;
 using Online_Marketplace.BLL.Interface.IServices;
+using Online_Marketplace.BLL.Interface.IUserServices;
 using Online_Marketplace.DAL.Entities;
 using Online_Marketplace.DAL.Entities.Models;
 using Online_Marketplace.Logger.Logger;
@@ -19,15 +20,17 @@ namespace Online_Marketplace.BLL.Implementation.Services
         private readonly ILoggerManager _logger;
         private readonly IUserServices _userServices;
         private readonly UserManager<User> _userManager;
+        private readonly IAuthService _authService;
 
         private readonly IRepository<Wallet> _walletRepo;
 
 
-        public SellerServices(ILoggerManager logger, IUnitOfWork unitOfWork, UserManager<User> userManager, IUserServices userServices)
+        public SellerServices(IAuthService authService, ILoggerManager logger, IUnitOfWork unitOfWork, UserManager<User> userManager, IUserServices userServices)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
             _userManager = userManager;
+            _authService = authService; 
             _userServices = userServices;
             _sellerRepo = _unitOfWork.GetRepository<Seller>();
             _walletRepo = _unitOfWork.GetRepository<Wallet>();
@@ -36,8 +39,7 @@ namespace Online_Marketplace.BLL.Implementation.Services
 
         public async Task<string> RegisterSeller(SellerForRegistrationDto sellerForRegistration)
         {
-            
-            _logger.LogInfo("Creating the Seller as a user first, before assigning the seller role to them and them add them to Sellers table.");
+            _logger.LogInfo("Creating the Seller as a user first, before assigning the seller role to them and adding them to the Sellers table.");
 
             var user = await _userServices.RegisterUser(new UserForRegistrationDto
             {
@@ -52,24 +54,39 @@ namespace Online_Marketplace.BLL.Implementation.Services
 
             var seller = new Seller
             {
-
                 FirstName = sellerForRegistration.FirstName,
                 LastName = sellerForRegistration.LastName,
                 PhoneNumber = sellerForRegistration.PhoneNumber,
                 Email = sellerForRegistration.Email,
                 BusinessName = sellerForRegistration.BusinessName,
                 UserId = user.Id
-
             };
 
             await _sellerRepo.AddAsync(seller);
             await CreateCustomerAccount(seller);
 
+            var verificationToken = Guid.NewGuid().ToString();
+            var emailSent = await _authService.SendVerificationEmail(sellerForRegistration.Email, verificationToken);
 
-            var result = new { success = true, message = "Registration Successful! You can now start listing your product!" };
-            return JsonConvert.SerializeObject(result);
+            if (emailSent)
+            {
+               
+                user.VerificationToken = verificationToken;
+                await _userManager.UpdateAsync(user);
 
+               
+                var result = new { success = true, message = "Registration Successful! Please check your email for the verification link." };
+                return JsonConvert.SerializeObject(result);
+            }
+            else
+            {
+               
+                var result = new { success = false, message = "Failed to send verification email. Please try again later." };
+                return JsonConvert.SerializeObject(result);
+            }
         }
+
+
 
         private async Task CreateCustomerAccount(Seller seller )
         {

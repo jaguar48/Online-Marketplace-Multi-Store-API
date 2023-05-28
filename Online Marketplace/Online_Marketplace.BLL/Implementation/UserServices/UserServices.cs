@@ -41,7 +41,7 @@ namespace Online_Marketplace.BLL.Implementation.Services
                 PhoneNumber = userForRegistration.PhoneNumber
             };
 
-            user.EmailConfirmed = true;
+           
 
             var result = await _userManager.CreateAsync(user, userForRegistration.Password);
             if (!result.Succeeded)
@@ -53,7 +53,6 @@ namespace Online_Marketplace.BLL.Implementation.Services
             }
 
             return user;
-
 
         }
 

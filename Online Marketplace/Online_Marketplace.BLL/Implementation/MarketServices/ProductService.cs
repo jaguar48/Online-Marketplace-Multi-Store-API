@@ -9,6 +9,7 @@ using Online_Marketplace.DAL.Entities;
 using Online_Marketplace.DAL.Entities.Models;
 using Online_Marketplace.Logger.Logger;
 using Online_Marketplace.Shared.DTOs;
+using System.Net.Http.Headers;
 using System.Security.Claims;
 
 
@@ -48,56 +49,85 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
 
 
 
+
         public async Task<string> CreateProductAsync(ProductCreateDto productDto)
         {
-            var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (userId == null)
+            try
             {
-                throw new Exception("User not found");
-            }
-
-            var product = _mapper.Map<Product>(productDto);
-
-            Seller seller = await _sellerRepo.GetSingleByAsync(s => s.UserId == userId);
-
-            if (seller == null)
-            {
-                throw new Exception("Seller not found");
-            }
-
-            product.SellerId = seller.Id;
-
-            // Retrieve all categories
-            var categories = await _catRepo.GetAllAsync(c => c.SellerId == seller.Id);
-
-            // Add the selected category to the produc
-
-            if (productDto.CategoryId > 0)
-            {
-                var category = categories.FirstOrDefault(c => c.Id == productDto.CategoryId);
-                if (category != null)
+                if (productDto.File == null || productDto.File.Length == 0)
                 {
-                    product.Category = category;
+                    throw new Exception("Image file is required");
                 }
-            }
 
-            // Save the images to the database
-            if (productDto.Images != null && productDto.Images.Any())
-            {
-                foreach (var imageString in productDto.Images)
+                var folderName = Path.Combine("Resources", "Images");
+                var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
+
+              
+                if (!Directory.Exists(pathToSave))
                 {
-                    var imageData = Convert.FromBase64String(imageString);
-                    var productImage = new ProductImage { ImageData = imageData };
-                    product.Images.Add(productImage);
+                    Directory.CreateDirectory(pathToSave);
                 }
+
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(productDto.File.FileName);
+                var fullPath = Path.Combine(pathToSave, fileName);
+                var dbPath = Path.Combine(folderName, fileName).Replace('\\', '/');
+
+
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    await productDto.File.CopyToAsync(stream);
+                }
+
+                var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (userId == null)
+                {
+                    throw new Exception("User not found");
+                }
+
+                var product = new Product
+                {
+                    Name = productDto.Name,
+                    Description = productDto.Description,
+                    Price = productDto.Price,
+                    StockQuantity = productDto.StockQuantity,
+                    Brand = productDto.Brand,
+                    CategoryId = productDto.CategoryId,
+                    ImagePath = dbPath 
+                };
+
+                Seller seller = await _sellerRepo.GetSingleByAsync(s => s.UserId == userId);
+
+                if (seller == null)
+                {
+                    throw new Exception("Seller not found");
+                }
+
+                product.SellerId = seller.Id;
+
+            
+                var categories = await _catRepo.GetAllAsync(c => c.SellerId == seller.Id);
+
+               
+                if (productDto.CategoryId > 0)
+                {
+                    var category = categories.FirstOrDefault(c => c.Id == productDto.CategoryId);
+                    if (category != null)
+                    {
+                        product.Category = category;
+                    }
+                }
+
+                await _productRepo.AddAsync(product);
+                await _unitOfWork.SaveChangesAsync();
+
+                var result = new { success = true, message = "Product created successfully", product.ImagePath };
+                return JsonConvert.SerializeObject(result);
             }
-
-            await _productRepo.AddAsync(product);
-            await _unitOfWork.SaveChangesAsync();
-
-            var result = new { success = true, message = "product created successfully" };
-            return JsonConvert.SerializeObject(result);
+            catch (Exception ex)
+            {
+                return JsonConvert.SerializeObject(new { success = false, message = ex.Message });
+            }
         }
 
 
@@ -338,18 +368,18 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
 
 
         }
-        
+
         public async Task<List<ProductViewDto>> ViewProductsAsync()
         {
             var products = await _productRepo.GetAllAsync(include: p => p.Include(r => r.ProductReview));
 
-
             var productDtos = _mapper.Map<List<ProductViewDto>>(products);
 
-
             return productDtos;
-
         }
+
+
+
 
         public async Task<bool> AddToCartAsync(int productId, int quantity)
         {
