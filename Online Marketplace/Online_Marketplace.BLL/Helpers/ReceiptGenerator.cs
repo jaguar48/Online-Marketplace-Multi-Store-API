@@ -23,10 +23,7 @@ namespace Online_Marketplace.BLL.Extension
             var itemFont = FontFactory.GetFont(FontFactory.HELVETICA, 12);
 
             // Header
-            var logoPath = "https://zenithexchange.ltd/assets/img/log.png";
-            var logo = Image.GetInstance(logoPath);
-            logo.ScaleAbsolute(70f, 70f);
-            logo.Alignment = Element.ALIGN_LEFT;
+         
 
             var businessName = new Paragraph("MOTION STORE", headerFont);
             businessName.Alignment = Element.ALIGN_CENTER;
@@ -37,7 +34,7 @@ namespace Online_Marketplace.BLL.Extension
             headerTable.SpacingAfter = 10f;
             headerTable.HorizontalAlignment = Element.ALIGN_CENTER;
 
-            var cell = new PdfPCell(logo);
+            var cell = new PdfPCell();
             cell.Border = Rectangle.NO_BORDER;
             headerTable.AddCell(cell);
 
