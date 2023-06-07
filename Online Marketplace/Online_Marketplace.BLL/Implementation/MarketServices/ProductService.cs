@@ -496,8 +496,9 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
                 Brand = product.Brand,
                 CategoryId = product.Category.Id,
                 CategoryName = product.Category.Name,
-                BusinessName = product.Seller.BusinessName
-              
+                BusinessName = product.Seller.BusinessName,
+                ImageUrl = product.ImagePath
+
             };
         }
 

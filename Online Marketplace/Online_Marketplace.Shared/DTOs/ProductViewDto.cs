@@ -3,7 +3,7 @@ namespace Online_Marketplace.Shared.DTOs
 {
     public class ProductViewDto
     {
-        [Required]
+        [Required] 
         public int Id { get; set; }
 
         [Required(ErrorMessage = "Name is required")]
