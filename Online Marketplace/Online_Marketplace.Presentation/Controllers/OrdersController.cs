@@ -101,7 +101,7 @@ namespace Online_Marketplace.Presentation.Controllers
         {
             var receipt = await _orderService.GenerateReceiptAsync(orderId);
 
-            // Return the receipt as a file
+           
             return File(receipt, "application/pdf", $"receipt_{orderId}.pdf");
             
         }

@@ -138,7 +138,7 @@ namespace Online_Marketplace.BLL.Implementation.MarketServices
             var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (userId == null)
-            {
+            { 
                 throw new Exception("User not found");
             }
 
