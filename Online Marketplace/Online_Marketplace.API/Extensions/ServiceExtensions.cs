@@ -54,8 +54,8 @@ namespace Online_Marketplace.API.Extensions
 
         public static void ConfigureSqlContext(this IServiceCollection services, IConfiguration configuration) =>
         services.AddDbContext<MarketPlaceDBContext>(opts =>
-        opts.UseSqlServer(configuration.GetConnectionString("sqlConnection")));
-
+        opts.UseNpgsql(configuration.GetConnectionString("sqlConnection")));
+         
         public static void ConfigureIdentity(this IServiceCollection services)
         {
             var builder = services.AddIdentity<User, IdentityRole>(o =>

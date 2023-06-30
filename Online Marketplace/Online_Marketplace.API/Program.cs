@@ -102,7 +102,7 @@ namespace Online_Marketplace.API
 
             app.UseCors("CorsPolicy");
 
-            app.UseHttpsRedirection();
+            // app.UseHttpsRedirection();
 
             app.UseStaticFiles();
             app.UseStaticFiles(new StaticFileOptions()
